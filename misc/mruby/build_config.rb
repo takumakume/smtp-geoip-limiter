@@ -4,7 +4,7 @@ MRuby::Build.new do |conf|
   conf.gembox 'full-core'
 
   conf.gem :github => 'iij/mruby-io'
-  conf.gem :github => 'iij/mruby-env'
+  #conf.gem :github => 'iij/mruby-env'
   conf.gem :github => 'iij/mruby-dir'
   #conf.gem :github => 'iij/mruby-digest'
   #conf.gem :github => 'iij/mruby-process'
@@ -15,6 +15,8 @@ MRuby::Build.new do |conf|
   #conf.gem :github => 'matsumoto-r/mruby-uname'
   #conf.gem :github => 'matsumoto-r/mruby-mutex'
   #conf.gem :github => 'matsumoto-r/mruby-localmemcache'
+  conf.gem :github => 'happysiro/mruby-maxminddb'
+  conf.gem :github => 'iij/mruby-regexp-pcre'
   conf.gem :github => 'AndrewBelt/mruby-yaml'
   conf.gem :github => 'kaihar4-archive/mruby-ipaddress_matcher'
 

@@ -1,16 +1,30 @@
 class GeoipLimiter
   def initialize config
-    @config = config
+    @maxminddb_path      = config[:maxminddb_path]
+    @permit_country_list = config[:permit_country_list] # array
+    @permit_ipaddr_list  = config[:permit_ipaddr_list]  # array
   end
 
   def permit? ipaddr
     # Is the source IP address in the IP address whitelist?
-    ipaddr_find?(ipaddr_regexps, ipaddr) ? true : false
+    return true if permit_ipaddr?(ipaddr)
 
     maxminddb.lookup_string ipaddr
 
     # Is the source country_code in the country_code whitelist?
-    country_white_list.include?(maxminddb.country_code) ? true : false
+    permit_country?(maxminddb.country_code)
+  end
+
+  def ipaddr_regexps
+    @_ipaddr_regexps ||= @permit_ipaddr_list.map { |cidr| IPAddressMatcher::CIDR.new(cidr).to_regexp }
+  end
+
+  def permit_ipaddr? ipaddr
+    ipaddr_regexps.select { |r| ipaddr =~ r }.empty?
+  end
+
+  def permit_country? country_code
+    permit_country_list.include?(country_code)
   end
 
   def maxminddb
@@ -22,47 +36,35 @@ class GeoipLimiter
       end
     end
   end
-
-  def country_white_list
-    unless @_country_white_list
-      begin
-        @_country_white_list = YAML.load(File.open(@config['country_white_list']).read())
-      rescue => e
-        raise "country white list load error #{self.class}##{__method__} #{e}"
-      end
-    end
-  end
-
-  def ipaddr_white_list
-    unless @_ipaddr_white_list
-      begin
-        @_ipaddr_white_list = YAML.load(File.open(@config['ipaddr_white_list']).read())
-      rescue => e
-        raise "ipaddr white list load error #{self.class}##{__method__} #{e}"
-      end
-    end
-  end
-
-  def ipaddr_regexps ipadd_list
-    @_ipaddr_regexps ||= ipadd_list.map { |cidr| IPAddressMatcher::CIDR.new(cidr).to_regexp }
-  end
-
-  def ipaddr_find? ipaddr_regexps, ipaddr
-    ipaddr_regexps.select { |regexp| ipaddr =~ allow_regexp }.empty?
-  end
 end
 
 if Object.const_defined?(:MTest)
-  class TestGeoipLimiter
+  class TestGeoipLimiter < MTest::Unit::TestCase
     def setup
+      maxminddb_path = "../GeoLite2-City.mmdb"
 
+      permit_country = %w(
+        JP
+      )
+
+      permit_ipaddr = %w(
+        192.168.1.0/24
+      )
+
+      @limiter = GeoipLimiter.new(
+        :maxminddb_path      => maxminddb_path,
+        :permit_country_list => permit_country,
+        :permit_ipaddr_list  => permit_ipaddr
+      )
     end
 
     def test_permit
-
+      assert_true(@limiter.permit?("192.168.1.1"))
+      assert_false(@limiter.permit?("192.168.2.1"))
     end
-
   end
+  
+  MTest::Unit.new.run
 else
 
 end
